@@ -56,6 +56,10 @@ module SimpleXlsxReader
     Document.new(file_path).tap(&:sheets)
   end
 
+  def self.open_buffer(buffer)
+    BufferDocument.new(buffer).tap(&:sheets)
+  end
+
   class Document
     attr_reader :file_path
 

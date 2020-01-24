@@ -31,7 +31,7 @@ describe SimpleXlsxReader do
 
   describe 'from a buffer' do
     let(:buffer) { StringIO.new(File.read(sesame_street_blog_file)) }
-    let(:subject) { SimpleXlsxReader::Document.new(buffer, buffer: true) }
+    let(:subject) { SimpleXlsxReader::BufferDocument.new(buffer) }
 
     describe '#to_hash' do
       it 'reads an xlsx file into a hash of {[sheet name] => [data]}' do
