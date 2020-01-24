@@ -106,6 +106,14 @@ module SimpleXlsxReader
         end
       end
 
+      def self.load_from_buffer(buffer)
+        self.new.tap do |xml|
+          SimpleXlsxReader::Zip.open_buffer(buffer) do |zip|
+            load_from_zip(xml, zip)
+          end
+        end
+      end
+
       def self.load_from_zip(xml, zip)
         xml.sheets = []
         xml.sheet_rels = []
@@ -538,5 +546,18 @@ module SimpleXlsxReader
 
     end
 
+  end
+
+  # Document backed by an IO-like instead of a file path.
+  class BufferDocument < Document
+    def initialize(buffer)
+      @buffer = buffer
+      super(nil)
+    end
+
+    def xml
+      # Buffer is set to nil here so that it can be GCd
+      Document::Xml.load_from_buffer(@buffer).tap { @buffer = nil }
+    end
   end
 end

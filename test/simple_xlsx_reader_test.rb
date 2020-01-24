@@ -6,23 +6,37 @@ SXR = SimpleXlsxReader
 describe SimpleXlsxReader do
   let(:sesame_street_blog_file) { File.join(File.dirname(__FILE__),
                                             'sesame_street_blog.xlsx') }
+  let(:sesame_street_blog_hash) do
+    {
+      "Authors"=>
+        [["Name", "Occupation"],
+         ["Big Bird", "Teacher"]],
+
+      "Posts"=>
+        [["Author Name", "Title", "Body", "Created At", "Comment Count", "URL"],
+         ["Big Bird", "The Number 1", "The Greatest", Time.parse("2002-01-01 11:00:00 UTC"), 1, SXR::Hyperlink.new("http://www.example.com/hyperlink-function", "This uses the HYPERLINK() function")],
+         ["Big Bird", "The Number 2", "Second Best", Time.parse("2002-01-02 14:00:00 UTC"), 2, SXR::Hyperlink.new("http://www.example.com/hyperlink-gui", "This uses the hyperlink GUI option")],
+         ["Big Bird", "Formula Dates", "Tricky tricky", Time.parse("2002-01-03 14:00:00 UTC"), 0, nil],
+         ["Empty Eagress", nil, "The title, date, and comment have types, but no values", nil, nil, nil]]
+    }
+  end
 
   let(:subject) { SimpleXlsxReader::Document.new(sesame_street_blog_file) }
 
   describe '#to_hash' do
     it 'reads an xlsx file into a hash of {[sheet name] => [data]}' do
-      subject.to_hash.must_equal({
-        "Authors"=>
-          [["Name", "Occupation"],
-           ["Big Bird", "Teacher"]],
+      subject.to_hash.must_equal(sesame_street_blog_hash)
+    end
+  end
 
-        "Posts"=>
-          [["Author Name", "Title", "Body", "Created At", "Comment Count", "URL"],
-           ["Big Bird", "The Number 1", "The Greatest", Time.parse("2002-01-01 11:00:00 UTC"), 1, SXR::Hyperlink.new("http://www.example.com/hyperlink-function", "This uses the HYPERLINK() function")],
-           ["Big Bird", "The Number 2", "Second Best", Time.parse("2002-01-02 14:00:00 UTC"), 2, SXR::Hyperlink.new("http://www.example.com/hyperlink-gui", "This uses the hyperlink GUI option")],
-           ["Big Bird", "Formula Dates", "Tricky tricky", Time.parse("2002-01-03 14:00:00 UTC"), 0, nil],
-           ["Empty Eagress", nil, "The title, date, and comment have types, but no values", nil, nil, nil]]
-      })
+  describe 'from a buffer' do
+    let(:buffer) { StringIO.new(File.read(sesame_street_blog_file)) }
+    let(:subject) { SimpleXlsxReader::Document.new(buffer, buffer: true) }
+
+    describe '#to_hash' do
+      it 'reads an xlsx file into a hash of {[sheet name] => [data]}' do
+        subject.to_hash.must_equal(sesame_street_blog_hash)
+      end
     end
   end
 
