@@ -101,51 +101,55 @@ module SimpleXlsxReader
       def self.load(file_path)
         self.new.tap do |xml|
           SimpleXlsxReader::Zip.open(file_path) do |zip|
-            xml.sheets = []
-            xml.sheet_rels = []
-
-            # This weird style of enumerating over the entries lets us
-            # concisely assign entries in a case insensitive and
-            # slash insensitive ('/' vs '\') manner.
-            #
-            # RubyZip used to normalize the slashes, but doesn't now:
-            # https://github.com/rubyzip/rubyzip/issues/324
-            zip.entries.each do |entry|
-              if entry.name.match(/^xl.workbook\.xml$/) # xl/workbook.xml
-                xml.workbook = Nokogiri::XML(zip.read(entry)).remove_namespaces!
-              elsif entry.name.match(/^xl.styles\.xml$/) # xl/styles.xml
-                xml.styles   = Nokogiri::XML(zip.read(entry)).remove_namespaces!
-              elsif entry.name.match(/^xl.sharedStrings\.xml$/i) # xl/sharedStrings.xml
-                # optional feature used by excel, but not often used by xlsx
-                # generation libraries. Path name is sometimes lowercase, too.
-                xml.shared_strings = Nokogiri::XML(zip.read(entry)).remove_namespaces!
-              elsif match = entry.name.match(/^xl.worksheets.sheet([0-9]*)\.xml$/)
-                sheet_number = match.captures.first.to_i
-                xml.sheets[sheet_number] =
-                  Nokogiri::XML(zip.read(entry)).remove_namespaces!
-              elsif match = entry.name.match(/^xl.worksheets._rels.sheet([0-9]*)\.xml\.rels$/)
-                sheet_number = match.captures.first.to_i
-                xml.sheet_rels[sheet_number] =
-                  Nokogiri::XML(zip.read(entry)).remove_namespaces!
-              end
-            end
-
-            # Sometimes there's a zero-index sheet.xml, ex.
-            # Google Docs creates:
-            #
-            # xl/worksheets/sheet.xml
-            # xl/worksheets/sheet1.xml
-            # xl/worksheets/sheet2.xml
-            # While Excel creates:
-            # xl/worksheets/sheet1.xml
-            # xl/worksheets/sheet2.xml
-            #
-            # So, for the latter case, let's shift [null, <Sheet 1>, <Sheet 2>]
-            if !xml.sheets[0]
-              xml.sheets.shift
-              xml.sheet_rels.shift
-            end
+            load_from_zip(xml, zip)
           end
+        end
+      end
+
+      def self.load_from_zip(xml, zip)
+        xml.sheets = []
+        xml.sheet_rels = []
+
+        # This weird style of enumerating over the entries lets us
+        # concisely assign entries in a case insensitive and
+        # slash insensitive ('/' vs '\') manner.
+        #
+        # RubyZip used to normalize the slashes, but doesn't now:
+        # https://github.com/rubyzip/rubyzip/issues/324
+        zip.entries.each do |entry|
+          if entry.name.match(/^xl.workbook\.xml$/) # xl/workbook.xml
+            xml.workbook = Nokogiri::XML(zip.read(entry)).remove_namespaces!
+          elsif entry.name.match(/^xl.styles\.xml$/) # xl/styles.xml
+            xml.styles   = Nokogiri::XML(zip.read(entry)).remove_namespaces!
+          elsif entry.name.match(/^xl.sharedStrings\.xml$/i) # xl/sharedStrings.xml
+            # optional feature used by excel, but not often used by xlsx
+            # generation libraries. Path name is sometimes lowercase, too.
+            xml.shared_strings = Nokogiri::XML(zip.read(entry)).remove_namespaces!
+          elsif match = entry.name.match(/^xl.worksheets.sheet([0-9]*)\.xml$/)
+            sheet_number = match.captures.first.to_i
+            xml.sheets[sheet_number] =
+              Nokogiri::XML(zip.read(entry)).remove_namespaces!
+          elsif match = entry.name.match(/^xl.worksheets._rels.sheet([0-9]*)\.xml\.rels$/)
+            sheet_number = match.captures.first.to_i
+            xml.sheet_rels[sheet_number] =
+              Nokogiri::XML(zip.read(entry)).remove_namespaces!
+          end
+        end
+
+        # Sometimes there's a zero-index sheet.xml, ex.
+        # Google Docs creates:
+        #
+        # xl/worksheets/sheet.xml
+        # xl/worksheets/sheet1.xml
+        # xl/worksheets/sheet2.xml
+        # While Excel creates:
+        # xl/worksheets/sheet1.xml
+        # xl/worksheets/sheet2.xml
+        #
+        # So, for the latter case, let's shift [null, <Sheet 1>, <Sheet 2>]
+        if !xml.sheets[0]
+          xml.sheets.shift
+          xml.sheet_rels.shift
         end
       end
     end
